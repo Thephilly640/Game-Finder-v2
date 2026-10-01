@@ -12,6 +12,8 @@ BASE = "https://site.api.espn.com/apis/site/v2/sports/football/"
 ALIAS = {"Massachusetts": "UMass", "Connecticut": "UConn", "Hawai'i": "Hawaii", "San José State": "San Jose State",
          "Louisiana": "Louisiana", "Miami": "Miami", "App State": "Appalachian State", "Appalachian St": "Appalachian State"}
 
+ERRORS = []
+
 def get(url):
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 game-finder"})
     for attempt in range(3):
@@ -21,6 +23,7 @@ def get(url):
         except Exception as e:
             err = e
     print("fetch failed:", url, err, file=sys.stderr)
+    ERRORS.append(url.split("football/")[-1][:60] + " -> " + str(err)[:120])
     return None
 
 def load_app():
@@ -92,10 +95,12 @@ def main():
     events = []
     events += parse_events(get(BASE + f"nfl/scoreboard?dates={rng}&limit=100"), "nfl")
     events += parse_events(get(BASE + f"college-football/scoreboard?dates={rng}&groups=80&limit=400"), "ncaa")
-    if not events:
-        print("no events fetched; leaving data.json unchanged"); return
-
     path = os.path.join(ROOT, "data.json")
+    if not events:
+        print("no events fetched; leaving data.json unchanged", ERRORS)
+        if not os.path.exists(path):  # first run: leave a note so the problem is visible in the repo
+            json.dump(dict(updated="", finals=[], spreads={}, R={}, stats=dict(events=0), errors=ERRORS or ["feed returned no events"]), open(path, "w"))
+        return
     try:
         old = json.load(open(path))
     except Exception:
