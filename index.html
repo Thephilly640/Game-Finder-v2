@@ -84,6 +84,8 @@ h1{font-family:var(--display);font-size:1.9rem;line-height:1;margin:0;letter-spa
 .cp.nfl{border-color:var(--nfl)}.cp.ncaa{border-color:var(--ncaa)}.cp.nascar{border-color:var(--nascar)}.cp.f1{border-color:var(--f1)}
 .cp.fin{opacity:.6}
 .pastbtn[hidden]{display:none}
+.cp-more{display:block;font:700 .54rem var(--body);color:var(--muted);text-align:center}
+.cp-show{margin-top:auto;font:700 .6rem var(--body);letter-spacing:.04em;text-transform:uppercase;border:1.5px solid var(--accent);color:var(--accent);background:var(--card);border-radius:5px;padding:3px 0;cursor:pointer;width:100%}
 .cp.more{border-left-color:var(--muted);color:var(--muted);text-align:center;padding-left:2px}
 .cal-note{font-size:.72rem;color:var(--muted);margin:8px 2px 0;text-align:center}
 .mdl{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center}
@@ -94,6 +96,14 @@ h1{font-family:var(--display);font-size:1.9rem;line-height:1;margin:0;letter-spa
 .mdl .list{display:grid;gap:10px}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;font:700 .8rem var(--body);letter-spacing:.05em;text-transform:uppercase;border:1.5px solid var(--line);background:var(--card);color:var(--fg);padding:8px 13px;border-radius:999px;cursor:pointer}
+.chip[data-f="nfl"]{border-color:var(--nfl);color:var(--nfl)}
+.chip[data-f="ncaa"]{border-color:var(--ncaa);color:var(--ncaa)}
+.chip[data-f="nascar"]{border-color:var(--nascar);color:var(--nascar)}
+.chip[data-f="f1"]{border-color:var(--f1);color:var(--f1)}
+.chip[data-f="nfl"][aria-pressed="true"]{background:var(--nfl);color:var(--bg);border-color:var(--nfl)}
+.chip[data-f="ncaa"][aria-pressed="true"]{background:var(--ncaa);color:var(--bg);border-color:var(--ncaa)}
+.chip[data-f="nascar"][aria-pressed="true"]{background:var(--nascar);color:var(--bg);border-color:var(--nascar)}
+.chip[data-f="f1"][aria-pressed="true"]{background:var(--f1);color:var(--bg);border-color:var(--f1)}
 .chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .chip:focus-visible,.star:focus-visible,.clear:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 main{padding-inline:16px;padding-block:6px 40px}
@@ -136,7 +146,7 @@ main{padding-inline:16px;padding-block:6px 40px}
       <input id="q" type="search" placeholder="Search a team, city or channel" autocomplete="off" enterkeyhint="search" aria-label="Search games">
       <button class="clear" id="clear" aria-label="Clear search" hidden>×</button>
     </div>
-        <div class="viewrow" role="group" aria-label="View"><button class="vb" id="v-list" data-v="list" aria-pressed="true">List</button><button class="vb" id="v-cal" data-v="cal" aria-pressed="false">3-week calendar</button></div>
+        <div class="viewrow" role="group" aria-label="View"><button class="vb" id="v-list" data-v="list" aria-pressed="true">List</button><button class="vb" id="v-cal" data-v="cal" aria-pressed="false">2-week calendar</button></div>
     <div class="chips" role="group" aria-label="Filter">
       <button class="chip" id="c-all" data-f="all" aria-pressed="true">All</button>
       <button class="chip" id="c-mine" data-f="mine" aria-pressed="false">★ My teams</button>
@@ -324,7 +334,7 @@ function calHtml(list,now){
   const by={};list.forEach(g=>(by[dayKey(g.start)]??=[]).push(g));
   let h='<div class="cal"><div class="cal-h">'+["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>`<span>${d}</span>`).join("")+'</div>';
   const MAXP=4;
-  for(let w=0;w<3;w++){
+  for(let w=0;w<2;w++){
     h+='<div class="cal-w">';
     for(let d=0;d<7;d++){
       const dt=new Date(base.getTime());dt.setUTCDate(base.getUTCDate()+w*7+d);
@@ -332,12 +342,13 @@ function calHtml(list,now){
       const lbl=(dt.getUTCDate()===1||(w===0&&d===0)?MONTHS[dt.getUTCMonth()]+" ":"")+dt.getUTCDate();
       h+=`<div class="cal-d${k===todayK?" today":""}${k<todayK?" old":""}"><span class="cal-n">${lbl}</span>`;
       gs.slice(0,MAXP).forEach(g=>{h+=`<button class="cp ${g.lg}${g.fin?" fin":""}" data-g="${g.i}" aria-label="${esc(g.ev)}">${esc(pillText(g)).replace("\n","<br>")}</button>`});
-      if(gs.length>MAXP)h+=`<button class="cp more" data-day="${k}">+${gs.length-MAXP}</button>`;
+      if(gs.length>MAXP)h+=`<span class="cp-more">+${gs.length-MAXP} more</span>`;
+      if(gs.length)h+=`<button class="cp-show" data-day="${k}" aria-label="Show all ${gs.length} on ${lbl}">Show</button>`;
       h+='</div>';
     }
     h+='</div>';
   }
-  return h+'<p class="cal-note">Tap a game for details. Dimmed games are finished.</p></div>';
+  return h+'<p class="cal-note">Tap a game, or Show, for details. Dimmed games are finished.</p></div>';
 }
 const gById=i=>games.find(g=>g.i===i);
 function paintModal(){
@@ -366,7 +377,7 @@ function onAct(e){
   saveMine();render();
 }
 $("list").addEventListener("click",e=>{
-  const cp=e.target.closest(".cp");
+  const cp=e.target.closest(".cp,.cp-show");
   if(cp){
     if(cp.dataset.day){
       const k=cp.dataset.day,ids=calList.filter(g=>dayKey(g.start)===k).sort((a,b)=>(a.fin?0:1)-(b.fin?0:1)||a.start-b.start).map(g=>g.i);
