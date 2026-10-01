@@ -1,0 +1,1 @@
+{"updated": "", "finals": [], "spreads": {}, "R": {}, "stats": {"events": 0}, "errors": ["nfl/scoreboard?dates=20260929-20261015&limit=100 -> HTTP Error 400: Bad Request", "scoreboard?dates=20260929-20261015&groups=80&limit=400 -> HTTP Error 400: Bad Request"]}
