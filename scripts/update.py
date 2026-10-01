@@ -148,6 +148,10 @@ def ap_ranks(names):
 NATIONAL_OK = {"ABC", "CBS", "NBC / Peacock", "NBC", "FOX", "ESPN", "ESPN2", "ESPNU", "FS1", "FS2", "Big Ten Network", "SEC Network",
                "ACC Network", "CBS Sports Network", "The CW", "TNT / truTV", "USA Network", "ESPN / ABC"}
 
+def placeholder(iso):
+    """ESPN uses 00:00 / 23:59 ET when the real kickoff time is not set yet."""
+    return iso[11:16] in ("00:00", "23:59", "00:01")
+
 def sync_football(lg, slug, days, names, static_rows):
     today = datetime.now(ET).date()
     rng = f"{today:%Y%m%d}-{today + timedelta(days=days):%Y%m%d}"
@@ -169,10 +173,13 @@ def sync_football(lg, slug, days, names, static_rows):
         cands = [g for g in cands if abs((parse_dt(g[0]).date() - parse_dt(e["iso"]).date()).days) <= 10]
         if cands:
             g = min(cands, key=lambda g: abs((parse_dt(g[0]) - parse_dt(e["iso"])).total_seconds()))
-            new_iso = e["iso"] if parse_dt(g[0]) != parse_dt(e["iso"]) else g[0]
-            new_net = net if (net and (is_tv or not g[5]) and net != g[5]) else g[5]
+            ph = placeholder(e["iso"])
+            new_iso = g[0] if ph or parse_dt(g[0]) == parse_dt(e["iso"]) else e["iso"]
+            new_net = net if (net and net != "TBD" and not ph and (is_tv or not g[5]) and net != g[5]) else g[5]
             if new_iso != g[0] or new_net != g[5]:
                 return [g[0] + "|" + g[3], new_iso, g[1], lg, g[3], g[4], new_net, ""]
+            return None
+        if placeholder(e["iso"]):
             return None
         # a game the app does not have yet (skip it if a team already has a game that day under another spelling)
         if any((t, parse_dt(e["iso"]).date()) in have_day for t in teams):
@@ -201,6 +208,8 @@ def sync_racing(names, static_rows, xup):
             if not comp or not comp.get("date"):
                 continue
             iso = et_iso(comp["date"])
+            if placeholder(iso):
+                continue
             net, is_tv = network(comp)
             # find the matching row the app already has (same series, same ET day +/- 1)
             pool = [r for r in (static_rows if sub in ("cup", "") else xup) if (r[2] == lg if sub in ("cup", "") else r[1] == sub)]
