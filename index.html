@@ -191,7 +191,6 @@ main{padding-inline:16px;padding-block:6px 40px}
     </div>
     <div class="subrow" id="nflrow" hidden><label for="nsub">NFL</label><select id="nsub"><option value="all">All games</option><option value="fantasy">Fantasy</option></select></div>
     <div class="fbar" id="fbar" hidden><span><b>My fantasy team:</b> <span id="fcount">0 players</span></span><button id="fedit" type="button">Pick players</button></div>
-    <div class="subrow" id="grow" hidden><label for="gsub">Tour</label><select id="gsub"><option value="pga">PGA Tour</option><option value="liv">LIV Golf</option></select></div>
     <div class="subrow" id="subrow" hidden><label for="sub">Series</label><select id="sub"><option value="cup">Cup Series</option><option value="oreilly">O'Reilly Series</option><option value="truck">Truck Series</option><option value="arca">ARCA Series</option></select></div>
   </header>
   <main>
@@ -262,7 +261,7 @@ let filter="all",showPast=true,anchorPending=true,mine=new Set();
 try{mine=new Set(JSON.parse(localStorage.getItem("gf2_myteams")||"[]"))}catch(e){}
 try{filter=localStorage.getItem("gf2_filter")||"all"}catch(e){}
 try{nsub=localStorage.getItem("gf2_nsub")==="fantasy"?"fantasy":"all";fteam=new Set(JSON.parse(localStorage.getItem("gf2_fteam")||"[]"));fextra=JSON.parse(localStorage.getItem("gf2_fextra")||"[]")}catch(e){}
-let gsub="pga";try{gsub=localStorage.getItem("gf2_gsub")==="liv"?"liv":"pga"}catch(e){}
+const gsub="pga";
 try{sub=localStorage.getItem("gf2_sub")||"cup";if(!SUBS[sub])sub="cup"}catch(e){}
 const saveMine=()=>{try{localStorage.setItem("gf2_myteams",JSON.stringify([...mine]))}catch(e){}};
 const $=id=>document.getElementById(id);
@@ -387,7 +386,7 @@ function card(g,words,now){
     const gt=g.gt,open=openR.has(g.i),lead=gt.top&&gt.top[0],fin=gt.state==="post",inP=gt.state==="in";
     const rows=(gt.top||[]).map(t=>`<li><b>${esc(t[1])}</b><span>${esc(t[2])}</span></li>`).join("");
     return `<article class="game${fin||(!inP&&g.end<now)?" past":""}"><span class="bar golf"></span><div class="info">
-      <div class="meta"><span class="t${inP?" lv":""}">${fin?"FINAL":esc(gt.range)}</span><span class="lg golf">Golf · ${GTOUR[g.sub]}</span>${inP?`<span class="live">IN PROGRESS</span>`:""}</div>
+      <div class="meta"><span class="t${inP?" lv":""}">${fin?"FINAL":esc(gt.range)}</span><span class="lg golf">Golf · PGA Tour</span>${inP?`<span class="live">IN PROGRESS</span>`:""}</div>
       <div class="ev">${hl(g.ev,words.length===1?words[0]:"")}</div>
       ${lead?`<div class="score"><span class="w">${fin?"Winner":"Leader"}: ${esc(lead[1])} (${esc(lead[2])})</span></div>`:""}
       ${g.note?`<div class="note">${esc(g.note)}${fin?" · "+esc(gt.range):""}</div>`:fin?`<div class="note">${esc(gt.range)}</div>`:""}
@@ -440,7 +439,6 @@ function render(){
   });
   fin.sort((x,y)=>x.start-y.start);
   $("subrow").hidden=filter!=="nascar";$("sub").value=sub;
-  $("grow").hidden=filter!=="golf";$("gsub").value=gsub;
   $("nflrow").hidden=filter!=="nfl";$("nsub").value=nsub;
   $("fbar").hidden=!fantasyOn();$("fcount").textContent=fteam.size+" player"+(fteam.size===1?"":"s");
   const rc=filter==="nascar"||filter==="f1",unit=rc?"race":filter==="golf"?"tournament":"game";
@@ -479,7 +477,7 @@ function pillText(g){
     return abbr(g.teams[0])+"\n"+(neutral?"v ":"@")+abbr(g.teams[1]);
   }
   if(g.lg==="f1")return "F1 "+g.ev.split(" ")[0];
-  if(g.golf)return (g.sub==="liv"?"LIV ":"PGA ")+g.ev.replace(/^(the|\d{4})\s+/i,"").split(" ")[0];
+  if(g.golf)return "PGA "+g.ev.replace(/^(the|\d{4})\s+/i,"").split(" ")[0];
   return (g.sub&&g.sub!=="cup"?({oreilly:"OR",truck:"TR",arca:"AR"})[g.sub]+" ":"")+(g.note||g.ev).split(" ")[0];
 }
 let calList=[];
@@ -602,7 +600,6 @@ document.querySelectorAll(".chip").forEach(c=>c.addEventListener("click",()=>{
   filter=c.dataset.f;try{localStorage.setItem("gf2_filter",filter)}catch(e){}
   document.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed",x===c));anchorPending=true;render();
 }));
-$("gsub").addEventListener("change",e=>{gsub=e.target.value;try{localStorage.setItem("gf2_gsub",gsub)}catch(x){}anchorPending=true;render()});
 $("sub").addEventListener("change",e=>{sub=e.target.value;try{localStorage.setItem("gf2_sub",sub)}catch(x){}anchorPending=true;render()});
 $("q").addEventListener("input",()=>{anchorPending=true;render()});
 $("clear").addEventListener("click",()=>{$("q").value="";$("q").focus();anchorPending=true;render()});

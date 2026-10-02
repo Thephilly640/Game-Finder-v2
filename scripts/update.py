@@ -313,7 +313,7 @@ def sync_golf(old_rows):
     rng = f"{today - timedelta(days=8):%Y%m%d}-{today + timedelta(days=150):%Y%m%d}"
     prev = {(r[0], r[3]): r for r in old_rows}
     out = []
-    for slug, tour in (("pga", "pga"), ("liv", "liv")):
+    for slug, tour in (("pga", "pga"),):
         lst = get(GF + f"{slug}/events?dates={rng}&limit=100")
         for it in (lst or {}).get("items", []):
             ev = get(ref(it))
