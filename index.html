@@ -12,6 +12,7 @@
 <style>
 /* Layout: one-screen phone app — sticky header (title, search, series chips), scrolling day-grouped game list */
 :root{
+  --past:#d3d9d5;--pastfg:#4a534e;
   --bg:#eef1ef;--card:#ffffff;--fg:#161a18;--muted:#5b6560;--line:#d9dfdb;--field:#ffffff;
   --accent:#c8281c;--star:#d99a0b;--live:#c72e2e;
   --nascar:#c9361f;--f1:#1d5fb8;--nfl:#1f6f4a;--ncaa:#8a5a12;
@@ -20,10 +21,12 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#121615;--card:#1b201e;--fg:#e9eeeb;--muted:#99a39e;--line:#2b322f;--field:#232927;
   --accent:#ff6a55;--star:#f2c14e;--live:#ff6b6b;
+  --past:#0d100f;--pastfg:#8a948f;
   --nascar:#ff7a63;--f1:#78aef5;--nfl:#6fd09c;--ncaa:#e6b25f;color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#121615;--card:#1b201e;--fg:#e9eeeb;--muted:#99a39e;--line:#2b322f;--field:#232927;
   --accent:#ff6a55;--star:#f2c14e;--live:#ff6b6b;
+  --past:#0d100f;--pastfg:#8a948f;
   --nascar:#ff7a63;--f1:#78aef5;--nfl:#6fd09c;--ncaa:#e6b25f;color-scheme:dark}
 html,body{height:100%}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.35;-webkit-tap-highlight-color:transparent}
@@ -47,6 +50,10 @@ h1{font-style:italic;text-transform:uppercase;letter-spacing:.03em;white-space:n
 .resh{font-family:var(--display);font-size:1.5rem;text-transform:uppercase;letter-spacing:.07em;margin:30px 0 0;padding-top:14px;border-top:2px solid var(--line)}
 .nomatch{color:var(--muted);text-align:center;padding:26px 12px;font-size:.95rem}
 .share{flex:none;font:700 .8rem var(--body);border:1.5px solid var(--accent);color:var(--accent);background:var(--card);border-radius:999px;padding:6px 12px;cursor:pointer;margin-left:auto}
+.theme{flex:none;font:700 .95rem var(--body);line-height:1;border:1.5px solid var(--accent);color:var(--accent);background:var(--card);border-radius:999px;padding:6px 10px;cursor:pointer}
+.game.past{background:var(--past);border-color:var(--past)}
+.game.past .ev,.game.past .t{color:var(--pastfg)}
+.game.past .score .w{color:var(--fg)}
 .share:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
@@ -164,7 +171,7 @@ main{padding-inline:16px;padding-block:6px 40px}
 <div class="app">
   <header>
     <div class="top"><div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#14181a"/><g transform="translate(8 10)"><path d="M0 4h44v24H0z" fill="#f5f5f0"/><path d="M0 4h11v8H0zM22 4h11v8H22zM11 12h11v8H11zM33 12h11v8H33zM0 20h11v8H0zM22 20h11v8H22z" fill="#14181a"/></g><ellipse cx="34" cy="40" rx="20" ry="11" transform="rotate(-18 34 40)" fill="#8b4a1f"/><path d="M26 40h16" stroke="#f5f5f0" stroke-width="2" transform="rotate(-18 34 40)"/><path d="M4 44h16M6 50h12M10 56h8" stroke="#e0352a" stroke-width="3" stroke-linecap="round"/></svg><h1>Game Finder <span class="v2b">V2</span></h1></div><span class="count" id="count"></span></div>
-    <div class="upd"><span id="updated"></span><button class="refresh" id="refresh">↻ Get new games</button><button class="share" id="share" type="button" aria-label="Share this app">Share</button></div>
+    <div class="upd"><span id="updated"></span><button class="refresh" id="refresh">↻ Get new games</button><button class="theme" id="theme" type="button" aria-label="Switch between normal and dark mode">☾</button><button class="share" id="share" type="button" aria-label="Share this app">Share</button></div>
     <p class="status" id="status" hidden></p>
     <div class="search">
       <input id="q" type="search" placeholder="Search a team, city or channel" autocomplete="off" enterkeyhint="search" aria-label="Search games">
@@ -373,7 +380,7 @@ function card(g,words,now){
   if(g.race){
     const w=g.race[0],open=openR.has(g.i);
     const rows=g.race.map((t,n)=>`<li><b>${t[0]}</b><span>${esc(t[1])}</span></li>`).join("");
-    return `<article class="game race"><span class="bar ${g.lg}"></span><div class="info">
+    return `<article class="game race past"><span class="bar ${g.lg}"></span><div class="info">
       <div class="meta"><span class="t">FINAL</span><span class="lg ${g.lg}">${LEAGUE[g.lg]}${g.sub&&g.sub!=="cup"?" · "+SUBS[g.sub].replace(" Series",""):""}</span></div>
       <div class="ev">${hl(g.ev,words.length===1?words[0]:"")}</div>
       <div class="score"><span class="w">Winner: ${esc(w[0])}</span></div>
@@ -381,7 +388,7 @@ function card(g,words,now){
       <button class="xp" data-r="${g.i}" aria-expanded="${open}">${open?"Hide top 10":"Show top 10"}</button>
       ${open?`<ol class="t10">${rows}</ol>`:""}</div><span></span></article>`;
   }
-  return `<article class="game"><span class="bar ${g.lg}"></span><div class="info">
+  return `<article class="game${!live&&(r||done||g.fin||g.end<now)?" past":""}"><span class="bar ${g.lg}"></span><div class="info">
       <div class="meta"><span class="t${inP?" lv":""}">${first}</span><span class="lg ${g.lg}">${LEAGUE[g.lg]}${g.sub&&g.sub!=="cup"?" · "+SUBS[g.sub].replace(" Series",""):""}</span>${live?`<span class="live">${inP?"LIVE":"ON NOW"}</span>`:""}</div>
       <div class="ev">${hl(g.ev,words.length===1?words[0]:"")}</div>
       ${score}${g.note?`<div class="note">${esc(g.note)}</div>`:""}
@@ -654,6 +661,17 @@ async function loadRosters(){
 loadLive().then(pollLive);loadRosters();setInterval(loadLive,10*60*1000);setInterval(pollLive,LIVE_MS);
 document.addEventListener("visibilitychange",()=>{if(!document.hidden){loadLive();pollLive()}});
 
+
+// Normal / dark mode toggle (remembers the choice; follows the phone's setting until you pick)
+(function(){
+  const root=document.documentElement,b=$("theme"),mq=matchMedia("(prefers-color-scheme: dark)");
+  const cur=()=>root.dataset.theme||(mq.matches?"dark":"light");
+  const paint=()=>{const d=cur()==="dark";b.textContent=d?"☀":"☾";b.setAttribute("aria-label",d?"Switch to normal mode":"Switch to dark mode");
+    const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=d?"#121615":"#eef1ef"};
+  try{const t=localStorage.getItem("gf2_theme");if(t==="dark"||t==="light")root.dataset.theme=t}catch(e){}
+  b.addEventListener("click",()=>{const n=cur()==="dark"?"light":"dark";root.dataset.theme=n;try{localStorage.setItem("gf2_theme",n)}catch(e){}paint()});
+  paint();
+})();
 
 // Share button: native share sheet when available, otherwise copy the link
 $("share").addEventListener("click",async()=>{
