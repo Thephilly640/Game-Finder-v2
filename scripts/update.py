@@ -327,15 +327,18 @@ def sync_golf(old_rows):
             start = parse_dt(ev["date"]).astimezone(ET).date()
             end = parse_dt(ev.get("endDate") or ev["date"]).astimezone(ET).date()
             name = ev.get("name") or ev.get("shortName") or "Tournament"
+            if name.startswith("TBD"):
+                continue
             old = prev.get((tour, name))
             st = get(ref(comp.get("status")), quiet=True) or {}
             ty = st.get("type") or {}
-            if ty.get("completed") or ty.get("state") == "post":
+            # ESPN also reports "post" after each round, so only trust it once the last day is done
+            if today > end or (today == end and (ty.get("completed") or ty.get("state") == "post")):
                 state = "post"
-            elif ty.get("state") in ("in", "pre"):
-                state = ty["state"]
-            else:  # status feed unavailable: go by the dates
-                state = "pre" if today < start else "in" if today <= end else "post"
+            elif today >= start:
+                state = "in"
+            else:
+                state = "pre"
             net = golf_net(comp)
             venue = ""
             vref = (ev.get("venues") or [{}])[0]
@@ -346,7 +349,11 @@ def sync_golf(old_rows):
                 top = old[7]
             elif state in ("in", "post"):
                 top = golf_top(slug, ev, comp)
-            if state == "post" and len(top) < 3:
+            if top and sum(1 for t in top if t[1] == "?") > len(top) // 2:
+                top = []  # team events (Presidents Cup) have no per-player leaderboard here
+            if state == "post" and old and old[6] == "post" and old[7] and not top:
+                top = old[7]
+            if state == "post" and not top and today <= end:
                 state = "in" if today <= end else "post"
             out.append([tour, start.isoformat(), end.isoformat(), name, venue or (old[4] if old else ""), net or (old[5] if old else ""), state, top])
     return out
