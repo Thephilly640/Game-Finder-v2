@@ -26,6 +26,8 @@ ERRORS = []
 _cache = {}
 
 def get(url, quiet=False):
+    if not url:
+        return None
     url = url.replace("http://", "https://")
     if url in _cache:
         return _cache[url]
@@ -458,7 +460,11 @@ def main():
     races = [r for r in races if r[0] >= cutoff]
 
     cutoff_g = (today - timedelta(days=21)).isoformat()
-    golf = [r for r in sync_golf(old.get("golf", [])) if r[2] >= cutoff_g]
+    try:
+        golf = [r for r in sync_golf(old.get("golf", [])) if r[2] >= cutoff_g]
+    except Exception as e:  # golf must never break the rest of the update
+        ERRORS.append("golf: " + repr(e)[:80])
+        golf = old.get("golf", [])
 
     data = dict(updated=stamp(), schedAt=sched_at, sched=sched, finals=finals, spreads=spreads, R=R, races=races, golf=golf,
                 stats=dict(events=len(evs), matched=len(matched), finals=len(finals), spreads=len(spreads), sched=len(sched),
